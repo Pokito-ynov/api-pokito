@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokito Test Client</title>
+    <style>
+        body { font-family: monospace; max-width: 800px; margin: 0 auto; padding: 20px; background: #1a1a1a; color: #0f0; }
+        .box { border: 1px solid #333; padding: 15px; margin-bottom: 20px; border-radius: 4px; background: #222; }
+        input, button { padding: 8px; margin: 5px 0; background: #000; color: #fff; border: 1px solid #444; font-family: inherit; }
+        button { cursor: pointer; background: #333; }
+        button:hover { background: #444; }
+        #logs { height: 300px; overflow-y: auto; border: 1px solid #444; padding: 10px; background: #000; white-space: pre-wrap; }
+        .hidden { display: none; }
+        .row { display: flex; gap: 10px; }
+        h2 { border-bottom: 1px solid #444; padding-bottom: 5px; }
+    </style>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>🎲 Pokito Debugger</h1>
+
+    <!-- 1. Connexion -->
+    <div id="auth-box" class="box">
+        <h2>1. Connexion</h2>
+        <input type="text" id="pseudo" placeholder="Pseudo" value="Guest1">
+        <button onclick="connect()">Se connecter</button>
+    </div>
+
+    <!-- 2. Lobby (Créer / Rejoindre) -->
+    <div id="lobby-box" class="box hidden">
+        <h2>2. Lobby</h2>
+        <div class="row">
+            <button onclick="createTable()">Créer une Table</button>
+            <div style="border-left: 1px solid #444; padding-left: 10px;">
+                <input type="text" id="join-code" placeholder="Code Table">
+                <button onclick="joinTable()">Rejoindre</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Jeu -->
+    <div id="game-box" class="box hidden">
+        <h2>3. Jeu - Table <span id="table-id-display">?</span></h2>
+        <div id="players-list">Joueurs: ...</div>
+        <hr>
+        <button onclick="startGame()">Lancer la partie</button>
+        
+        <div id="controls" style="margin-top: 10px;">
+            <h3>Actions</h3>
+            <input type="number" id="bet-qty" placeholder="Quantité (ex: 2)" style="width: 60px;">
+            <input type="number" id="bet-val" placeholder="Valeur (ex: 5)" style="width: 60px;">
+            <button onclick="placeBet()">Parier</button>
+            <button onclick="dudo()" style="color: red;">Menteur ! (Dudo)</button>
+        </div>
+
+        <div id="my-hand" style="margin-top: 10px; color: yellow;">
+            Mes dés: ?
+        </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="box">
+        <h2>Logs</h2>
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        let socket;
+        let currentTableId = null;
+
+        function log(msg, type = 'info') {
+            const el = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            el.innerHTML += `[${time}] ${msg}\n`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function connect() {
+            const pseudo = document.getElementById('pseudo').value;
+            socket = io();
+
+            socket.on('connect', () => {
+                log(`Connected with ID: ${socket.id}`);
+                socket.emit('guest:join', { pseudo, avatar: 'default' });
+            });
+
+            socket.on('guest:joined', (data) => {
+                log(`Logged in as ${data.pseudo}`);
+                document.getElementById('auth-box').classList.add('hidden');
+                document.getElementById('lobby-box').classList.remove('hidden');
+            });
+
+            // Events Table
+            socket.on('table:created', (data) => {
+                log(`Table created! Code: ${data.table.code}`);
+                enterGameMode(data.table.id);
+            });
+
+            socket.on('table:joined', (data) => {
+                log(`Joined table ${data.tableId}`);
+                enterGameMode(data.tableId);
+            });
+
+            socket.on('table:players', (data) => {
+                const list = data.players.map(p => p.pseudo).join(', ');
+                document.getElementById('players-list').innerText = `Joueurs: ${list}`;
+                log(`Players updated: ${list}`);
+            });
+
+            // Events Game
+            socket.on('game:started', (data) => {
+                log(`📢 GAME STARTED! Current player: ${data.currentPlayer}`);
+            });
+
+            socket.on('game:hand', (data) => {
+                document.getElementById('my-hand').innerText = `Mes dés: ${data.dice.join(', ')}`;
+            });
+
+            socket.on('game:bet_placed', (data) => {
+                log(`👉 ${data.pseudo} parie: ${data.quantity}x ${data.value}. Next: ${data.nextPlayer}`);
+            });
+
+            socket.on('game:error', (err) => {
+                log(`❌ ERROR: ${err.message}`);
+            });
+        }
+
+        function createTable() {
+            socket.emit('table:create', { type: 'publique', joueursMax: 4 });
+        }
+
+        function joinTable() {
+            const code = document.getElementById('join-code').value;
+            socket.emit('table:join', { code });
+        }
+
+        function enterGameMode(tableId) {
+            currentTableId = tableId;
+            document.getElementById('table-id-display').innerText = tableId;
+            document.getElementById('lobby-box').classList.add('hidden');
+            document.getElementById('game-box').classList.remove('hidden');
+        }
+
+        function startGame() {
+            if(!currentTableId) return;
+            socket.emit('game:start', { tableId: currentTableId });
+        }
+
+        function placeBet() {
+            const qty = parseInt(document.getElementById('bet-qty').value);
+            const val = parseInt(document.getElementById('bet-val').value);
+            socket.emit('game:bet', { tableId: currentTableId, quantity: qty, value: val });
+        }
+
+        function dudo() {
+            socket.emit('game:dudo', { tableId: currentTableId });
+        }
+    </script>
+</body>
+</html>
+
