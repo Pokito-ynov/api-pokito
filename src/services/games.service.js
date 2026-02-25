@@ -32,6 +32,9 @@ export const getByTableId = async (tableId) => {
   return { data: game };
 };
 
+// Alias used by the REST controller
+export const getById = getByTableId;
+
 export const endGame = async (tableId) => {
 
   gameStore.removeGame(tableId);

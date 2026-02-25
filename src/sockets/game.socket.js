@@ -1,5 +1,6 @@
 import * as gameStore from '../stores/gameStore.js';
 import * as gamesService from '../services/games.service.js';
+import * as guestsService from '../services/guests.service.js';
 
 export const registerGameHandlers = (io, socket) => {
 
@@ -44,6 +45,13 @@ export const registerGameHandlers = (io, socket) => {
     try {
       console.log(`[Game] Start request for table ${tableId} by ${socket.id}`);
 
+      // Guard: socket must be at this table
+      const playersAtTable = guestsService.getGuestsByTable(tableId);
+      if (!playersAtTable.find(p => p.socketId === socket.id)) {
+        socket.emit('game:error', { message: 'You are not at this table' });
+        return;
+      }
+
       // Use Service to Create Game (Handles DB state + Player gathering)
       const { data: game, error } = await gamesService.create(tableId);
 
@@ -57,7 +65,11 @@ export const registerGameHandlers = (io, socket) => {
 
       broadcastGameState(tableId);
 
+      const firstPlayer = gameStore.getGame(tableId)?.players[gameStore.getGame(tableId)?.currentPlayerIndex]?.pseudo;
       io.to(tableId).emit('game:notification', { message: "The game has started!" });
+      if (firstPlayer) {
+        io.to(tableId).emit('game:notification', { message: `It's ${firstPlayer}'s turn` });
+      }
 
     } catch (err) {
       console.error(err);
@@ -80,14 +92,14 @@ export const registerGameHandlers = (io, socket) => {
       broadcastGameState(tableId);
 
       if (game.stage === 'finished') {
-        io.to(tableId).emit('game:finished', { winners: game.winners });
-
-        // Sync DB state (Set table back to 'en_attente' or similar? Or keep it running?)
-        // Usually we keep 'en_cours' until empty, but let's follow logic.
-        // await gamesService.endGame(tableId); 
-        // NOTE: If we call endGame here, it removes the game from memory. 
-        // We probably want to wait for "New Game" signal.
-        // For MVP, leave it in memory so users see results.
+        const formattedWinners = game.winners.map(w => ({ pseudo: w.pseudo, score: w.handScore }));
+        io.to(tableId).emit('game:finished', { winners: formattedWinners });
+        io.to(tableId).emit('game:notification', { message: `${formattedWinners.map(w => w.pseudo).join(' & ')} win the pot!` });
+      } else {
+        const currentPlayer = game.players[game.currentPlayerIndex]?.pseudo;
+        if (currentPlayer) {
+          io.to(tableId).emit('game:notification', { message: `It's ${currentPlayer}'s turn` });
+        }
       }
 
     } catch (err) {

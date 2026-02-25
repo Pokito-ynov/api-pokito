@@ -11,14 +11,33 @@ Contrairement au Texas Hold'em :
 
 ## 2. Connexion au Socket
 
-Le namespace par défaut est utilisé. Assurez-vous d'avoir rejoint la table via `table:join` avant d'écouter les événements de jeu.
+Le namespace par défaut est utilisé. L'ordre de connexion est important :
+1. S'identifier via `guest:join` (pseudo + avatar)
+2. Rejoindre une table via `table:join`
 
 ```javascript
 import { io } from "socket.io-client";
 const socket = io("http://localhost:3000");
 
-// Rejoindre la table d'abord
+// Étape 1 : S'identifier
+socket.emit("guest:join", { pseudo: "DarkSasuké", avatar: "avatar1.png" });
+socket.on("guest:joined", ({ socketId, pseudo, avatar }) => {
+  // Vous êtes enregistré, vous pouvez rejoindre une table
+  socket.emit("table:join", { code: "ABCD12" });
+});
+
+socket.on("guest:error", ({ message }) => {
+  console.error(message); // ex: "Pseudo already taken"
+});
+```
+
+### Rejoindre une table
+```javascript
+// Par code (usage principal)
 socket.emit("table:join", { code: "ABCD12" });
+
+// Ou par ID
+socket.emit("table:join", { tableId: "uuid-de-la-table" });
 ```
 
 ## 3. Événements Émis (Client -> Serveur)
@@ -37,8 +56,8 @@ Action à envoyer quand c'est à votre tour (`currentPlayer === votrePseudo`).
 ```javascript
 socket.emit("game:action", {
   tableId: "uuid-de-la-table",
-  action: "call", // "check", "call", "raise", "fold"
-  amount: 50      // Requis seulement pour "raise" (montant TOTAL de la mise)
+  action: "call",
+  amount: 50
 });
 ```
 *Note : Si le joueur veut relancer à 150 alors que la mise actuelle est 100, `amount` doit être 150.*

@@ -18,6 +18,12 @@ export const registerTableHandlers = (io, socket) => {
   });
 
   socket.on('table:join', async ({ tableId, code }) => {
+    // Guard: guest must be registered via guest:join first
+    if (!guestsService.getGuest(socket.id)) {
+      socket.emit('table:error', { message: 'You must register with guest:join before joining a table' });
+      return;
+    }
+
     let table;
 
     if (tableId) {
@@ -42,6 +48,11 @@ export const registerTableHandlers = (io, socket) => {
     const playersInTable = guestsService.getGuestsByTable(table.id);
     if (playersInTable.length >= table.joueurs_max) {
       socket.emit('table:error', { message: 'Table is full' });
+      return;
+    }
+
+    if (table.etat === 'en_cours') {
+      socket.emit('table:error', { message: 'Game already in progress' });
       return;
     }
 

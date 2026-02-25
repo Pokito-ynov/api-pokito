@@ -18,7 +18,7 @@ app.use(express.json());
 app.use('/users', usersRoutes);
 app.use('/tables', tablesRoutes);
 app.use('/games', gamesRoutes);
-app.get('/health', (res) => {
+app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Pokito Backend is running' });
 });
 

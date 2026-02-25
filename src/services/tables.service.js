@@ -50,7 +50,7 @@ export const removePlayer = async (tableId, userId) => {
     .from('table_players')
     .delete()
     .eq('table_id', tableId)
-    .eq('user_id', visitorId);
+    .eq('user_id', userId);
 };
 
 export const getPlayers = async (tableId) => {

@@ -15,6 +15,7 @@ export const createGame = (tableId, players) => {
       chips: 1000, // Starting stack
       cards: [],
       bet: 0,
+      hasActed: false, // Track if player acted this street
       isFolded: false,
       isAllIn: false,
       handScore: null
@@ -36,6 +37,8 @@ export const createGame = (tableId, players) => {
 
 export const getGame = (tableId) => games.get(tableId);
 
+export const removeGame = (tableId) => games.delete(tableId);
+
 export const startGame = (tableId) => {
   const game = games.get(tableId);
   if (!game) throw new Error("Game not found");
@@ -54,6 +57,7 @@ export const startGame = (tableId) => {
   game.players.forEach(p => {
     p.cards = [];
     p.bet = 0;
+    p.hasActed = false;
     p.isFolded = false;
   });
 
@@ -108,6 +112,7 @@ export const handleAction = (tableId, socketId, action, amount) => {
   switch (action) {
     case 'fold':
       player.isFolded = true;
+      player.hasActed = true;
       break;
     case 'call':
       const callAmount = game.currentBet - player.bet;
@@ -115,18 +120,23 @@ export const handleAction = (tableId, socketId, action, amount) => {
       player.chips -= callAmount;
       player.bet += callAmount;
       game.pot += callAmount;
+      player.hasActed = true;
       break;
     case 'check':
       if (game.currentBet > player.bet) throw new Error("Cannot check, must call");
+      player.hasActed = true;
       break;
     case 'raise':
-      if (amount < game.currentBet) throw new Error("Raise too small");
+      if (amount <= game.currentBet) throw new Error("Raise must be higher than current bet");
       const diff = amount - player.bet;
       if (player.chips < diff) throw new Error("Not enough chips");
       player.chips -= diff;
       player.bet += diff;
       game.pot += diff;
       game.currentBet = amount;
+      player.hasActed = true;
+      // Everyone else needs to act again after a raise
+      game.players.forEach(p => { if (p !== player && !p.isFolded) p.hasActed = false; });
       break;
   }
 
@@ -153,16 +163,15 @@ const isRoundComplete = (game) => {
   const activePlayers = game.players.filter(p => !p.isFolded);
   if (activePlayers.length < 2) return true; // Everyone folded but one
 
-  // If everyone matches the current bet (or is all in) AND everyone has had a chance
-  // Simplifying for MVP: If all active bets == currentBet? 
-  // Need to track "last aggressor" to know when action closes.
-  // For now: Just check if bets equal.
-  return activePlayers.every(p => p.bet === game.currentBet);
+  // Round is complete when everyone has acted AND all bets are equal
+  return activePlayers.every(p => p.hasActed && p.bet === game.currentBet);
 };
 
+const STREET_STAGES = ['street1', 'street2', 'street3', 'street4'];
+
 const nextStreet = (game) => {
-  // Reset bets for new round
-  game.players.forEach(p => p.bet = 0);
+  // Reset bets and hasActed for new round
+  game.players.forEach(p => { p.bet = 0; p.hasActed = false; });
   game.currentBet = 0;
 
   if (game.players.filter(p => !p.isFolded).length === 1) {
@@ -174,8 +183,11 @@ const nextStreet = (game) => {
   const cardsCount = game.players.find(p => !p.isFolded).cards.length;
 
   if (cardsCount < 5) {
-    // Deal next card (Street 3, 4, 5)
+    // Deal next card (Street 2, 3, 4)
     dealCards(game, 1, true);
+    // Advance stage: street1 -> street2 -> street3 -> street4
+    const nextStageIndex = STREET_STAGES.indexOf(game.stage) + 1;
+    game.stage = STREET_STAGES[nextStageIndex] || 'street4';
     // Determine who starts (Best visible hand)
     game.currentPlayerIndex = getBestVisibleHandIndex(game);
   } else {
