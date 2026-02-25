@@ -3,6 +3,12 @@ import * as tablesService from '../services/tables.service.js';
 
 export const registerTableHandlers = (io, socket) => {
   socket.on('table:create', async ({ type, joueursMax }) => {
+    // Guard: guest must be registered via guest:join first
+    if (!guestsService.getGuest(socket.id)) {
+      socket.emit('table:error', { message: 'You must register with guest:join before creating a table' });
+      return;
+    }
+
     const { data: table, error } = await tablesService.create({ type, joueursMax });
 
     if (error) {

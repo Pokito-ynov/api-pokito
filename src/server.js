@@ -6,7 +6,7 @@ import { registerGuestHandlers } from './sockets/guest.socket.js';
 import { registerTableHandlers } from './sockets/table.socket.js';
 import { registerGameHandlers } from './sockets/game.socket.js';
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5015;
 
 const server = http.createServer(app);
 const io = createSocketServer(server);

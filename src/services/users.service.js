@@ -3,11 +3,12 @@ import { supabase } from '../config/supabase.js';
 
 export const register = async ({ email, password, pseudo }) => {
   const hashedPassword = await bcrypt.hash(password, 10);
-  return supabase
+  const { data, error } = await supabase
     .from('users')
     .insert({ email, password: hashedPassword, pseudo })
-    .select()
+    .select('id, email, pseudo, avatar, skin_cartes, created_at')
     .single();
+  return { data, error };
 };
 
 export const login = async ({ email, password }) => {
@@ -39,8 +40,16 @@ export const getById = async (id) => {
 };
 
 export const update = async (id, data) => {
-  const updateData = { ...data };
-  
+  // Whitelist allowed fields to prevent overwriting id, email, etc.
+  const ALLOWED_FIELDS = ['pseudo', 'avatar', 'skin_cartes', 'password'];
+  const updateData = Object.fromEntries(
+    Object.entries(data).filter(([key]) => ALLOWED_FIELDS.includes(key))
+  );
+
+  if (Object.keys(updateData).length === 0) {
+    return { data: null, error: { message: 'No valid fields to update' } };
+  }
+
   if (updateData.password) {
     updateData.password = await bcrypt.hash(updateData.password, 10);
   }

@@ -17,7 +17,7 @@ Le namespace par défaut est utilisé. L'ordre de connexion est important :
 
 ```javascript
 import { io } from "socket.io-client";
-const socket = io("http://localhost:3000");
+const socket = io("http://localhost:5015");
 
 // Étape 1 : S'identifier
 socket.emit("guest:join", { pseudo: "DarkSasuké", avatar: "avatar1.png" });

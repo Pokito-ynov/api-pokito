@@ -20,7 +20,7 @@ npm run dev
 Namespace par défaut :
 ```javascript
 import { io } from "socket.io-client";
-const socket = io("http://localhost:3000");
+const socket = io("http://localhost:5015");
 
 // Rejoindre une table (requis avant de jouer)
 socket.emit("table:join", { code: "ABCD12" });
