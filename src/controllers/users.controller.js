@@ -1,13 +1,13 @@
 import * as usersService from '../services/users.service.js';
 
 export const register = async (req, res) => {
-  const { email, password, pseudo } = req.body;
+  const { email, password, pseudo, phone, birthdate } = req.body;
 
   if (!email || !password || !pseudo) {
     return res.status(400).json({ error: 'Email, password and pseudo are required' });
   }
 
-  const { data, error } = await usersService.register({ email, password, pseudo });
+  const { data, error } = await usersService.register({ email, password, pseudo, phone, birthdate });
 
   if (error) {
     return res.status(400).json({ error: error.message });

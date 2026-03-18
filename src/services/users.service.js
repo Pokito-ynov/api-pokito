@@ -1,11 +1,11 @@
 import bcrypt from 'bcrypt';
 import { supabase } from '../config/supabase.js';
 
-export const register = async ({ email, password, pseudo }) => {
+export const register = async ({ email, password, pseudo, phone, birthdate }) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   const { data, error } = await supabase
     .from('users')
-    .insert({ email, password: hashedPassword, pseudo })
+    .insert({ email, password: hashedPassword, pseudo, phone, birthdate })
     .select('id, email, pseudo, avatar, skin_cartes, created_at')
     .single();
   return { data, error };
