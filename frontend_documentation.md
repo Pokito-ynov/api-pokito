@@ -33,14 +33,22 @@ Le namespace par défaut est utilisé. L'ordre de connexion est important :
 1. S'identifier via `guest:join` (pseudo + avatar)
 2. Rejoindre une table via `table:join`
 
+Le champ `userId` est optionnel. Si le joueur est connecte avec un compte, il permet de rattacher la partie au wallet, a l'inventaire et a l'historique.
+
 ```javascript
 import { io } from "socket.io-client";
 const socket = io("http://localhost:5015");
 
 // Étape 1 : S'identifier
-socket.emit("guest:join", { pseudo: "DarkSasuké", avatar: "avatar1.png" });
-socket.on("guest:joined", ({ socketId, pseudo, avatar }) => {
-  // Vous êtes enregistré, vous pouvez rejoindre une table
+socket.emit("guest:join", {
+  pseudo: "DarkSasuké",
+  avatar: "avatar1.png",
+  userId: "uuid-utilisateur-optionnel",
+  activeAvatarId: "uuid-avatar-optionnel",
+  activeCardSkinId: "uuid-skin-optionnel"
+});
+socket.on("guest:joined", ({ socketId, pseudo, avatar, userId, activeAvatarId, activeCardSkinId }) => {
+  // Vous etes identifies sur la session Socket, vous pouvez rejoindre une table
   socket.emit("table:join", { code: "ABCD12" });
 });
 
@@ -56,6 +64,15 @@ socket.emit("table:join", { code: "ABCD12" });
 
 // Ou par ID
 socket.emit("table:join", { tableId: "uuid-de-la-table" });
+```
+
+### Creer une table avec une arene
+```javascript
+socket.emit("table:create", {
+  type: "publique",
+  joueursMax: 6,
+  arenaId: "uuid-arena-optionnelle"
+});
 ```
 
 ## 3. Événements Émis (Client -> Serveur)
@@ -98,8 +115,11 @@ Votre UI doit être une "vue" de cet état.
   "currentPlayer": "DarkSasuké", // Pseudo du joueur qui doit agir !
   "players": [
     {
+      "userId": "uuid-utilisateur-optionnel",
       "pseudo": "DarkSasuké",
       "avatar": "avatar1.png",
+      "activeAvatarId": "uuid-avatar-optionnel",
+      "activeCardSkinId": "uuid-skin-optionnel",
       "chips": 850,        // Stack restant
       "bet": 50,           // Mise posée devant lui ce tour-ci
       "isFolded": false,   // S'il s'est couché (griser le joueur)
@@ -148,12 +168,54 @@ Envoyé à la fin de la partie (Showdown ou tout le monde s'est couché).
 ```json
 {
   "winners": [
-    { "pseudo": "Gagnant", "score": { "text": "Cinquan" } }
+    { "pseudo": "Gagnant", "userId": "uuid-utilisateur-optionnel", "score": { "text": "Cinquan" } }
   ]
 }
 ```
 
-## 5. Logique des États (`stage`)
+## 5. API REST utile au frontend
+
+### Catalogue
+
+```http
+GET /catalog/cosmetics
+GET /catalog/cosmetics?type=avatar
+GET /catalog/arenas
+```
+
+### Profil et progression utilisateur
+
+```http
+GET /users/:id
+GET /users/:id/wallet
+GET /users/:id/inventory
+GET /users/:id/history
+PUT /users/:id/loadout
+POST /users/:id/inventory/purchase
+```
+
+Exemple d'achat d'un cosmetique :
+```json
+{
+  "cosmeticId": "uuid-du-cosmetique"
+}
+```
+
+Exemple de mise a jour du loadout :
+```json
+{
+  "avatarId": "uuid-avatar",
+  "cardSkinId": "uuid-skin-cartes"
+}
+```
+
+### Notes d'integration
+
+- les invites peuvent jouer sans `userId`, mais ils n'ont pas de wallet persistant ni d'historique utilisateur
+- le wallet est mis a jour a la fin d'une partie terminee pour les joueurs lies a un compte
+- l'etat d'une partie active reste source de verite dans `Socket.IO`, pas dans la base
+
+## 6. Logique des États (`stage`)
 
 1.  **`street1`** : Distribution initiale (1 cachée, 1 visible). Enchères.
 2.  **`street2`** : 3ème carte visible distribuée. Enchères.
@@ -161,7 +223,7 @@ Envoyé à la fin de la partie (Showdown ou tout le monde s'est couché).
 4.  **`street4`** (River) : 5ème carte visible distribuée. Dernières enchères.
 5.  **`finished`** : Fin de partie.
 
-## 6. Actions UI Recommandées
+## 7. Actions UI Recommandées
 
 *   **Bouton "Check"** : Actif seulement si `currentBet == votre_mise_actuelle`.
 *   **Bouton "Call"** : Affiche le montant à ajouter (`currentBet - votre_mise`).

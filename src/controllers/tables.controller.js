@@ -1,9 +1,9 @@
 import * as tablesService from '../services/tables.service.js';
 
 export const create = async (req, res) => {
-  const { type, joueursMax } = req.body;
+  const { type, joueursMax, arenaId } = req.body;
 
-  const { data, error } = await tablesService.create({ type, joueursMax });
+  const { data, error } = await tablesService.create({ type, joueursMax, arenaId });
 
   if (error) {
     return res.status(400).json({ error: error.message });

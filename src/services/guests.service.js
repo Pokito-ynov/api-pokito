@@ -1,7 +1,7 @@
 import * as guestStore from '../stores/guestStore.js';
 
-export const addGuest = (socketId, pseudo, avatar = null) => {
-  guestStore.addGuest(socketId, pseudo, avatar);
+export const addGuest = (socketId, pseudo, options = {}) => {
+  guestStore.addGuest(socketId, pseudo, options);
   return guestStore.getGuest(socketId);
 };
 

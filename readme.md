@@ -3,6 +3,12 @@
 Bienvenue sur l'API Backend de Pokito.
 Ce projet gere la logique du **Poker Mexicain** via des WebSockets.
 
+## Architecture
+
+- l'etat live des parties reste en memoire via `Socket.IO`, `guestStore` et `gameStore`
+- la base Supabase ne stocke que le lobby, les comptes, l'economie, les cosmetiques, les arenes et l'historique final des parties
+- les cartes, les tours, les mises intermediaires et les mains privees ne sont pas persistes en base
+
 ## Regles du jeu
 
 Le paquet utilise par l'application est un paquet reduit :
@@ -27,6 +33,9 @@ Pour les suites, le `7` remplace le `10`. La quinte la plus haute est donc `7-J-
 ## 🚀 Démarrage Rapide
 
 ```bash
+# Configurer l'environnement
+cp .env.example .env
+
 # Installer les dépendances
 npm install
 
@@ -40,13 +49,67 @@ npm run dev
 # Construire l'image
 docker build -t api-pokito .
 
-# Lancer le conteneur (port 5015)
-docker run --name api-pokito -p 5015:5015 api-pokito
+# Creer le fichier d'environnement si besoin
+cp .env.example .env
+
+# Lancer le conteneur avec les variables Supabase (port 5015)
+docker run --name api-pokito --env-file .env -p 5015:5015 api-pokito
 ```
 
 L'API sera disponible sur `http://localhost:5015`
 
+Notes Docker :
+- le fichier `.env` n'est pas copie dans l'image Docker volontairement
+- sans `SUPABASE_URL` et `SUPABASE_ANON_KEY`, l'application ne peut pas demarrer
+- si vous ne voulez pas utiliser `--env-file`, vous pouvez aussi passer `-e SUPABASE_URL=... -e SUPABASE_ANON_KEY=...`
+
+## Base de donnees
+
+Le schema de persistance de la couche economie et cosmetiques est fourni dans [database/phase1_persistence.sql](c:/Users/nadji/Documents/Master%202/Ydays/Pokito/api-pokito/database/phase1_persistence.sql).
+
+Tables principales ajoutees :
+- `cosmetic_catalog`
+- `arenas`
+- `user_wallets`
+- `user_inventory`
+- `game_results`
+- `game_result_players`
+
+Colonnes etendues :
+- `users.active_avatar_id`
+- `users.active_card_skin_id`
+- `tables.arena_id`
+
+## API REST
+
+Catalogue :
+- `GET /catalog/cosmetics`
+- `GET /catalog/arenas`
+
+Utilisateurs :
+- `POST /users/register`
+- `POST /users/login`
+- `GET /users/:id`
+- `PUT /users/:id`
+- `GET /users/:id/wallet`
+- `GET /users/:id/inventory`
+- `POST /users/:id/inventory/purchase`
+- `PUT /users/:id/loadout`
+- `GET /users/:id/history`
+
+Tables :
+- `POST /tables` avec `arenaId` optionnel
+- `GET /tables`
+- `GET /tables/:id`
+- `GET /tables/code/:code`
+
+Notes :
+- le wallet est mis a jour a la fin des parties pour les joueurs rattaches a un `userId`
+- les invites peuvent continuer a jouer sans compte, mais leur progression n'est pas historisee dans le wallet
+
 ## 📖 Documentation Frontend (Intégration)
+
+Voir aussi [frontend_documentation.md](c:/Users/nadji/Documents/Master%202/Ydays/Pokito/api-pokito/frontend_documentation.md) pour les evenements Socket.IO et les nouveaux flux REST.
 
 ### 1. Connexion
 

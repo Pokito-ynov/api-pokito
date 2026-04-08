@@ -1,7 +1,22 @@
 const guests = new Map();
 
-export const addGuest = (socketId, pseudo, avatar = null) => {
-  guests.set(socketId, { socketId, pseudo, avatar, tableId: null });
+export const addGuest = (socketId, pseudo, options = {}) => {
+  const {
+    avatar = null,
+    userId = null,
+    activeAvatarId = null,
+    activeCardSkinId = null
+  } = options;
+
+  guests.set(socketId, {
+    socketId,
+    pseudo,
+    avatar,
+    userId,
+    activeAvatarId,
+    activeCardSkinId,
+    tableId: null
+  });
 };
 
 export const getGuest = (socketId) => guests.get(socketId);

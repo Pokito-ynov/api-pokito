@@ -1,14 +1,26 @@
 import * as guestsService from '../services/guests.service.js';
 
 export const registerGuestHandlers = (io, socket) => {
-  socket.on('guest:join', ({ pseudo, avatar }) => {
+  socket.on('guest:join', ({ pseudo, avatar, userId, activeAvatarId, activeCardSkinId }) => {
     if (guestsService.isGuestPseudoTaken(pseudo)) {
       socket.emit('guest:error', { message: 'Pseudo already taken' });
       return;
     }
 
-    const guest = guestsService.addGuest(socket.id, pseudo, avatar);
-    socket.emit('guest:joined', { socketId: socket.id, pseudo, avatar });
+    const guest = guestsService.addGuest(socket.id, pseudo, {
+      avatar,
+      userId,
+      activeAvatarId,
+      activeCardSkinId
+    });
+    socket.emit('guest:joined', {
+      socketId: socket.id,
+      pseudo,
+      avatar,
+      userId: guest.userId,
+      activeAvatarId: guest.activeAvatarId,
+      activeCardSkinId: guest.activeCardSkinId
+    });
     console.log(`Guest joined: ${pseudo} (${socket.id})`);
   });
 

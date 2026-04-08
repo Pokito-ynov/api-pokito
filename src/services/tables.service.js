@@ -4,19 +4,21 @@ const generateCode = () => {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 };
 
-export const create = async ({ type = 'publique', joueursMax = 8 }) => {
+const TABLE_SELECT = '*, arena:arenas(id, name, slug, description, background_asset_url, theme_color, is_available)';
+
+export const create = async ({ type = 'publique', joueursMax = 8, arenaId = null }) => {
   const code = generateCode();
   return supabase
     .from('tables')
-    .insert({ code, type, joueurs_max: joueursMax })
-    .select()
+    .insert({ code, type, joueurs_max: joueursMax, arena_id: arenaId })
+    .select(TABLE_SELECT)
     .single();
 };
 
 export const getAll = async () => {
   return supabase
     .from('tables')
-    .select('*')
+    .select(TABLE_SELECT)
     .eq('type', 'publique')
     .eq('etat', 'en_attente');
 };
@@ -24,7 +26,7 @@ export const getAll = async () => {
 export const getById = async (id) => {
   return supabase
     .from('tables')
-    .select('*')
+    .select(TABLE_SELECT)
     .eq('id', id)
     .single();
 };
@@ -32,7 +34,7 @@ export const getById = async (id) => {
 export const getByCode = async (code) => {
   return supabase
     .from('tables')
-    .select('*')
+    .select(TABLE_SELECT)
     .eq('code', code)
     .single();
 };

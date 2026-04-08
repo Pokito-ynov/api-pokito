@@ -2,14 +2,14 @@ import * as guestsService from '../services/guests.service.js';
 import * as tablesService from '../services/tables.service.js';
 
 export const registerTableHandlers = (io, socket) => {
-  socket.on('table:create', async ({ type, joueursMax }) => {
+  socket.on('table:create', async ({ type, joueursMax, arenaId }) => {
     // Guard: guest must be registered via guest:join first
     if (!guestsService.getGuest(socket.id)) {
       socket.emit('table:error', { message: 'You must register with guest:join before creating a table' });
       return;
     }
 
-    const { data: table, error } = await tablesService.create({ type, joueursMax });
+    const { data: table, error } = await tablesService.create({ type, joueursMax, arenaId });
 
     if (error) {
       socket.emit('table:error', { message: error.message });

@@ -18,8 +18,11 @@ export const registerGameHandlers = (io, socket) => {
       round: game.round,
       players: game.players.map(p => ({
         socketId: p.socketId,
+        userId: p.userId,
         pseudo: p.pseudo,
         avatar: p.avatar,
+        activeAvatarId: p.activeAvatarId,
+        activeCardSkinId: p.activeCardSkinId,
         chips: p.chips,
         bet: p.bet,
         isFolded: p.isFolded,
@@ -27,7 +30,7 @@ export const registerGameHandlers = (io, socket) => {
         // Show only visible cards
         cards: p.cards.map(c => c.visible ? c : { visible: false, back: true })
       })),
-      winners: game.winners.map(w => ({ pseudo: w.pseudo, score: w.handScore }))
+      winners: game.winners.map(w => ({ pseudo: w.pseudo, userId: w.userId, score: w.handScore }))
     };
 
     io.to(tableId).emit('game:state', publicState);
@@ -92,9 +95,13 @@ export const registerGameHandlers = (io, socket) => {
       broadcastGameState(tableId);
 
       if (game.stage === 'finished') {
-        const formattedWinners = game.winners.map(w => ({ pseudo: w.pseudo, score: w.handScore }));
+        const formattedWinners = game.winners.map(w => ({ pseudo: w.pseudo, userId: w.userId, score: w.handScore }));
         io.to(tableId).emit('game:finished', { winners: formattedWinners });
         io.to(tableId).emit('game:notification', { message: `${formattedWinners.map(w => w.pseudo).join(' & ')} win the pot!` });
+        const { error: endGameError } = await gamesService.endGame(tableId);
+        if (endGameError) {
+          console.error(endGameError);
+        }
       } else {
         const currentPlayer = game.players[game.currentPlayerIndex]?.pseudo;
         if (currentPlayer) {

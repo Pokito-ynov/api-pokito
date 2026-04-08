@@ -1,18 +1,26 @@
 import { createDeck, shuffle, evaluateHand } from '../utils/poker.js';
 
 const games = new Map();
+export const STARTING_CHIPS = 1000;
 
-export const createGame = (tableId, players) => {
+export const createGame = (tableId, players, options = {}) => {
   const deck = shuffle(createDeck());
+  const { arenaId = null } = options;
 
   const game = {
     id: tableId,
     tableId,
+    arenaId,
+    startedAt: new Date().toISOString(),
+    endedAt: null,
     players: players.map(p => ({
       socketId: p.socketId,
+      userId: p.userId || null,
       pseudo: p.pseudo,
       avatar: p.avatar,
-      chips: 1000, // Starting stack
+      activeAvatarId: p.activeAvatarId || null,
+      activeCardSkinId: p.activeCardSkinId || null,
+      chips: STARTING_CHIPS,
       cards: [],
       bet: 0,
       hasActed: false, // Track if player acted this street
@@ -198,6 +206,7 @@ const nextStreet = (game) => {
 
 const endGame = (game) => {
   game.stage = 'finished';
+  game.endedAt = new Date().toISOString();
   const activePlayers = game.players.filter(p => !p.isFolded);
 
   // Evaluate hands
