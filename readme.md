@@ -1,7 +1,28 @@
 # API Pokito (Poker Mexicain)
 
 Bienvenue sur l'API Backend de Pokito.
-Ce projet gère la logique du **Five-Card Stud** (Poker Mexicain) via des WebSockets.
+Ce projet gere la logique du **Poker Mexicain** via des WebSockets.
+
+## Regles du jeu
+
+Le paquet utilise par l'application est un paquet reduit :
+- cartes retirees : `8`, `9`, `10`
+- carte ajoutee : `1 Joker`
+
+Hierarchie des mains, de la plus forte a la plus faible :
+1. `Cinquan` : 4 cartes de meme valeur + le Joker
+2. `Quinte Flush Royale` : `7`, `J`, `Q`, `K`, `A` de la meme couleur
+3. `Quinte Flush` : 5 cartes consecutives de la meme couleur
+4. `Carre`
+5. `Couleur`
+6. `Full`
+7. `Quinte`
+8. `Brelan`
+9. `Double Paire`
+10. `Paire`
+11. `Carte Haute`
+
+Pour les suites, le `7` remplace le `10`. La quinte la plus haute est donc `7-J-Q-K-A`.
 
 ## 🚀 Démarrage Rapide
 

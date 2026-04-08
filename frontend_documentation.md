@@ -7,7 +7,25 @@ Ce document détaille le fonctionnement de l'API WebSocket pour le jeu de **Five
 Contrairement au Texas Hold'em :
 *   Chaque joueur possède son **propre tableau de cartes** (pas de cartes communes au milieu).
 *   Chaque joueur aura au final **1 carte cachée** et **4 cartes visibles**.
+*   Le paquet est **réduit** : pas de `8`, `9` ni `10`, avec **1 seul Joker** ajouté.
 *   **Ordre de parole dynamique** : À chaque tour, c'est le joueur avec la meilleure combinaison de cartes **visibles** qui commence à parler.
+
+### Hiérarchie des mains
+
+De la plus forte a la plus faible :
+1. `Cinquan` : 4 cartes de meme valeur + le Joker.
+2. `Quinte Flush Royale` : `7`, `J`, `Q`, `K`, `A` de la meme couleur.
+3. `Quinte Flush` : 5 cartes consecutives de la meme couleur.
+4. `Carre` : 4 cartes de meme valeur.
+5. `Couleur` : 5 cartes de la meme couleur non consecutives.
+6. `Full` : 1 brelan + 1 paire.
+7. `Quinte` : 5 cartes consecutives de couleurs differentes.
+8. `Brelan` : 3 cartes de meme valeur.
+9. `Double Paire` : deux paires.
+10. `Paire` : 2 cartes de meme valeur.
+11. `Carte Haute` : aucune combinaison.
+
+Pour les suites, l'ordre des rangs suit le paquet reduit. La quinte la plus haute est donc `7-J-Q-K-A`.
 
 ## 2. Connexion au Socket
 
@@ -89,7 +107,7 @@ Votre UI doit être une "vue" de cet état.
         // Cartes VISIBLES uniquement (les cachées sont masquées ici)
         { "visible": false, "back": true }, // Carte cachée (dos)
         { "suit": "hearts", "rank": "K", "visible": true },
-        { "suit": "spades", "rank": "10", "visible": true }
+        { "suit": "spades", "rank": "J", "visible": true }
       ]
     },
     // ... autres joueurs
@@ -106,10 +124,12 @@ Cet événement est envoyé **uniquement à vous**. Il contient vos cartes, y co
   "cards": [
     { "suit": "diamonds", "rank": "A", "visible": false }, // VOUS voyez cette carte
     { "suit": "hearts", "rank": "K", "visible": true },
-    { "suit": "spades", "rank": "10", "visible": true }
+    { "suit": "spades", "rank": "J", "visible": true }
   ]
 }
 ```
+
+Le Joker peut etre envoye comme une carte classique avec `"rank": "JOKER"` et `"suit": "joker"`.
 
 ### `game:notification`
 Message informatif éphémère (ex: "La partie commence !", "Pierre a gagné le pot").
@@ -128,7 +148,7 @@ Envoyé à la fin de la partie (Showdown ou tout le monde s'est couché).
 ```json
 {
   "winners": [
-    { "pseudo": "Gagnant", "score": { "text": "Full House" } }
+    { "pseudo": "Gagnant", "score": { "text": "Cinquan" } }
   ]
 }
 ```
