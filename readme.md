@@ -13,6 +13,18 @@ npm install
 npm run dev
 ```
 
+## 🐳 Lancer avec Docker
+
+```bash
+# Construire l'image
+docker build -t api-pokito .
+
+# Lancer le conteneur (port 5015)
+docker run --name api-pokito -p 5015:5015 api-pokito
+```
+
+L'API sera disponible sur `http://localhost:5015`
+
 ## 📖 Documentation Frontend (Intégration)
 
 ### 1. Connexion
