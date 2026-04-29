@@ -59,6 +59,49 @@ export const register = async ({ email, password, pseudo, phone, birthdate }) =>
   return { data, error };
 };
 
+export const oauthRegister = async ({ email, pseudo, avatar }) => {
+  if (!email) {
+    return { data: null, error: { message: 'Email is required' } };
+  }
+
+  const { data: existing, error: lookupError } = await supabase
+    .from('users')
+    .select(USER_PUBLIC_SELECT)
+    .eq('email', email)
+    .maybeSingle();
+
+  if (lookupError) {
+    return { data: null, error: lookupError };
+  }
+
+  if (existing) {
+    return { data: existing, error: null };
+  }
+
+  const randomPassword = await bcrypt.hash(`oauth-${Date.now()}-${Math.random()}`, 10);
+  const basePseudo = (pseudo || email.split('@')[0] || 'Joueur').slice(0, 15);
+
+  const tryInsert = (candidatePseudo) => supabase
+    .from('users')
+    .insert({
+      email,
+      password: randomPassword,
+      pseudo: candidatePseudo,
+      avatar: avatar || null
+    })
+    .select(USER_PUBLIC_SELECT)
+    .single();
+
+  let attempt = await tryInsert(basePseudo);
+
+  if (attempt.error && /pseudo/i.test(attempt.error.message || '')) {
+    const fallback = `${basePseudo.slice(0, 10)}_${Math.floor(Math.random() * 9999)}`;
+    attempt = await tryInsert(fallback);
+  }
+
+  return attempt;
+};
+
 export const login = async ({ email, password }) => {
   const { data: user, error } = await supabase
     .from('users')

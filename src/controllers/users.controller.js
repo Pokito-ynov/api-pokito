@@ -16,6 +16,22 @@ export const register = async (req, res) => {
   return res.status(201).json(data);
 };
 
+export const oauthRegister = async (req, res) => {
+  const { email, pseudo, avatar } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  const { data, error } = await usersService.oauthRegister({ email, pseudo, avatar });
+
+  if (error) {
+    return res.status(400).json({ error: error.message });
+  }
+
+  return res.status(200).json(data);
+};
+
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
